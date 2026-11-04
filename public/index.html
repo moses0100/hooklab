@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="th">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="HookLab กล่องรับ webhook ในเครื่องสำหรับทดสอบ n8n และ API"><title>HookLab — Local webhook inbox</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><script type="module" src="/app.js"></script></head>
+<body>
+<header class="topbar"><a href="/" class="brand"><span class="brand-mark" aria-hidden="true">h.</span><strong>HookLab</strong><span class="version">v0.1</span></a><span class="connection" id="connection">กำลังเชื่อมต่อ</span></header>
+<main>
+  <div class="intro"><div><p class="eyebrow">LOCAL WEBHOOK INBOX</p><h1>ส่งมา แล้วดูให้ชัด</h1><p class="subtitle">ดูข้อมูลที่ n8n หรือ API ส่งมา เก็บประวัติไว้ในเครื่องคุณ</p></div><button class="demo-button" id="send-demo" disabled><span aria-hidden="true">↗</span> ส่งตัวอย่าง</button></div>
+  <section class="endpoint" aria-labelledby="endpoint-label"><div><span class="live-dot" aria-hidden="true"></span><label id="endpoint-label" for="capture-url">URL รับ webhook ของคุณ</label><span class="endpoint-note">ใช้ได้จากเครื่องนี้</span></div><div class="endpoint-field"><input id="capture-url" readonly value="กำลังสร้าง inbox…" spellcheck="false"><button id="copy-url" disabled>คัดลอก URL</button></div></section>
+  <p id="message" role="status" class="message" hidden></p>
+  <p id="error" role="alert" class="error" hidden></p>
+  <div class="workspace">
+    <section class="inbox" aria-labelledby="inbox-title"><div class="section-head"><h2 id="inbox-title">Requests <span id="request-count">0</span></h2><button class="text-button" id="refresh">รีเฟรช</button></div><label class="search-label" for="search">ค้นหา method หรือเลขรายการ</label><input type="search" id="search" placeholder="เช่น POST หรือ #12" autocomplete="off"><ul id="request-list" class="request-list"></ul><p id="list-empty" class="list-empty">ยังไม่มี request เข้ามา</p></section>
+    <section class="inspector" aria-labelledby="inspector-title">
+      <div id="welcome" class="welcome"><div class="empty-symbol" aria-hidden="true">↳</div><p class="eyebrow">READY WHEN YOU ARE</p><h2 id="inspector-title">กล่องพร้อมแล้ว รอข้อมูลอยู่</h2><p>กด “ส่งตัวอย่าง” เพื่อดูหน้าตาข้อมูล<br>หรือวาง URL ด้านบนใน HTTP Request ของ n8n</p><div class="example"><span>ลองส่งจาก terminal</span><pre id="curl-example">กำลังโหลด…</pre></div><span class="empty-footnote">รองรับ JSON, form-urlencoded และ request ที่ไม่มี body</span></div>
+      <div id="detail" hidden><div class="detail-heading"><div class="detail-title"><span id="detail-method" class="method">POST</span><h2 id="detail-title">Request</h2></div><span class="received-tag">200 · received</span></div><div class="request-meta"><span id="detail-time"></span><span id="detail-size"></span><span id="detail-kind"></span></div><div class="tabs" role="tablist" aria-label="รายละเอียด request"><button role="tab" id="tab-body" aria-selected="true" aria-controls="payload" data-tab="body">Body</button><button role="tab" id="tab-headers" aria-selected="false" aria-controls="payload" data-tab="headers">Headers</button><button role="tab" id="tab-query" aria-selected="false" aria-controls="payload" data-tab="query">Query</button></div><div class="payload-toolbar"><span id="payload-label">JSON</span><button class="text-button" id="copy-payload">คัดลอกข้อมูล</button></div><pre id="payload" role="tabpanel" aria-labelledby="tab-body" tabindex="0"></pre><p class="redaction-note">ฟิลด์รหัสผ่านและโทเคนที่รู้จักถูกแทนด้วย [REDACTED] ก่อนบันทึก</p></div>
+    </section>
+  </div>
+  <footer><span>● ข้อมูลอยู่ในเครื่อง · SQLite</span><span>เก็บล่าสุด 200 รายการ · body สูงสุด 256 KiB</span></footer>
+</main>
+</body></html>
