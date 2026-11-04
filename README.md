@@ -1,5 +1,7 @@
 # HookLab
 
+[Source](https://github.com/moses0100/hooklab) · [CI](https://github.com/moses0100/hooklab/actions) · [งานถัดไป](docs/ROADMAP.md)
+
 กล่องรับ webhook ในเครื่อง สำหรับดูว่า n8n หรือ API ส่งข้อมูลอะไรมา
 
 รุ่นแรก: รับ JSON/form-urlencoded, ดู body/headers/query, ปิดบังฟิลด์ความลับที่รู้จัก และเก็บ 200 รายการล่าสุดใน SQLite
