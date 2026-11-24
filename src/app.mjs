@@ -39,6 +39,19 @@ export function createApp({ database = ':memory:', retention = 200 } = {}) {
         const row = Number.isSafeInteger(id) ? store.get(id) : null;
         return row ? json(200, row) : json(404, { error: 'ไม่พบรายการนี้ อาจถูกลบจากประวัติเก่าสุดแล้ว' });
       }
+      const exportRequest = url.pathname.match(/^\/api\/requests\/([1-9]\d*)\/export$/);
+      if (exportRequest && request.method === 'GET') {
+        const id = Number(exportRequest[1]);
+        const row = Number.isSafeInteger(id) ? store.get(id) : null;
+        if (!row) return json(404, { error: 'ไม่พบรายการนี้ อาจถูกลบจากประวัติเก่าสุดแล้ว' });
+        const timestamp = new Date(row.receivedAt).toISOString().replace(/[:.]/g, '-');
+        response.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="hooklab-request-${id}-${timestamp}.json"`
+        });
+        response.end(JSON.stringify(row, null, 2));
+        return;
+      }
       if (url.pathname === `/hooks/${store.inbox}`) {
         const buffer = await readBody(request);
         const parsed = parseBody(buffer, request.headers['content-type']);
@@ -62,3 +75,4 @@ export function createApp({ database = ':memory:', retention = 200 } = {}) {
   server.on('close', () => store.close());
   return server;
 }
+

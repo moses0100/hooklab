@@ -33,6 +33,7 @@ function renderList() {
 function renderPayload() {
   if(!record)return;
   $('payload').textContent=JSON.stringify(record[tab],null,2);
+  $('export-request').href=`/api/requests/${record.id}/export`;
   $('payload-label').textContent=tab==='body'?record.kind.toUpperCase():'JSON';
   $('payload').setAttribute('aria-labelledby',`tab-${tab}`);
   for(const button of document.querySelectorAll('[data-tab]'))button.setAttribute('aria-selected',String(button.dataset.tab===tab));
@@ -77,3 +78,4 @@ $('send-demo').addEventListener('click',async()=>{
 });
 void refresh();setInterval(()=>{if(!document.hidden)void refresh();},2000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh();});
+

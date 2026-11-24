@@ -63,6 +63,25 @@ test('retention removes oldest records and endpoints reject invalid identities',
   assert.equal((await fetch(`${base}/hooks/not-the-inbox`)).status, 404);
 });
 
+test('selected request exports as a redacted JSON download and missing records return 404', async t => {
+  const { base, captureUrl } = await app(t);
+  const received = await fetch(`${captureUrl}?token=private-query`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer private-header' },
+    body: JSON.stringify({ event: 'created', access_token: 'private-body' }) });
+  const { id } = await received.json();
+  const response = await fetch(`${base}/api/requests/${id}/export`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /^application\/json/);
+  assert.match(response.headers.get('content-disposition'), new RegExp(`attachment; filename="hooklab-request-${id}-`));
+  const exported = await response.json();
+  assert.equal(exported.id, id);
+  assert.deepEqual(exported.body, { event: 'created', access_token: MASK });
+  assert.equal(exported.headers.authorization, MASK);
+  assert.equal(exported.query.token, MASK);
+  assert.equal(JSON.stringify(exported).includes('private-'), false);
+  assert.equal((await fetch(`${base}/api/requests/999/export`)).status, 404);
+});
+
 test('cross-origin browser requests are rejected; secret-bearing input is not mutated', async t => {
   const { base, captureUrl } = await app(t);
   assert.equal((await fetch(captureUrl, { headers: { Origin: 'https://example.org' } })).status, 403);
@@ -110,3 +129,4 @@ test('overly nested JSON is rejected without retaining a partial request', async
   assert.equal(response.status,400);
   assert.deepEqual((await fetch(`${base}/api/requests`).then(r=>r.json())).requests,[]);
 });
+
