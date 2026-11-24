@@ -55,6 +55,7 @@ npm start
 | `GET /api/info` | URL inbox และขีดจำกัด |
 | `GET /api/requests` | ประวัติเรียงใหม่ก่อน |
 | `GET /api/requests/:id` | รายละเอียดที่ปิดบังข้อมูลแล้ว |
+| `GET /api/requests/:id/export` | ดาวน์โหลดรายละเอียดที่ปิดบังแล้วเป็น JSON |
 | `/hooks/:inbox-id` | รับ request แล้วตอบ `{"received":true,"id":1}` |
 
 รองรับ body แบบ JSON รวม `+json`, form-urlencoded และ request ที่ไม่มี body จำกัด 256 KiB รับไม่ผ่านจะไม่เพิ่มรายการ: JSON เสียหรือซ้อนลึกเกิน 40 ชั้นตอบ 400, body เกินขนาดตอบ 413 และชนิด body ที่ยังไม่รองรับตอบ 415 ไม่เก็บไฟล์แนบหรือ raw body ในรุ่นแรก
@@ -88,3 +89,4 @@ tests/            HTTP และ persistence tests
 ```
 
 รุ่นแรกมี checkpoint `checkpoint/first-webhook-inbox` ดูผลทดสอบใน [QA](docs/QA.md) และขอบเขตวันถัดไปใน [Roadmap](docs/ROADMAP.md)
+
