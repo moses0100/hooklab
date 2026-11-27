@@ -19,6 +19,7 @@ export function openStore(filename, retention = 200) {
   const inbox = db.prepare('SELECT value FROM settings WHERE key=?').get('inbox').value;
   const insert = db.prepare('INSERT INTO requests(method,received_at,bytes,kind,headers,query,body) VALUES (?,?,?,?,?,?,?)');
   const prune = db.prepare('DELETE FROM requests WHERE id NOT IN (SELECT id FROM requests ORDER BY id DESC LIMIT ?)');
+  const removeRow = db.prepare('DELETE FROM requests WHERE id=?');
   return {
     inbox,
     save(record) {
@@ -37,6 +38,7 @@ export function openStore(filename, retention = 200) {
       return row ? { id: row.id, method: row.method, receivedAt: row.received_at, bytes: row.bytes,
         kind: row.kind, headers: JSON.parse(row.headers), query: JSON.parse(row.query), body: JSON.parse(row.body) } : null;
     },
+    remove(id) { return removeRow.run(id).changes > 0; },
     close() { db.close(); }
   };
 }

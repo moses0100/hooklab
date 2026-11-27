@@ -39,6 +39,11 @@ export function createApp({ database = ':memory:', retention = 200 } = {}) {
         const row = Number.isSafeInteger(id) ? store.get(id) : null;
         return row ? json(200, row) : json(404, { error: 'ไม่พบรายการนี้ อาจถูกลบจากประวัติเก่าสุดแล้ว' });
       }
+      if (detail && request.method === 'DELETE') {
+        const id = Number(detail[1]);
+        const deleted = Number.isSafeInteger(id) ? store.remove(id) : false;
+        return deleted ? json(200, { deleted: true, id }) : json(404, { error: 'ไม่พบรายการนี้ อาจถูกลบไปแล้วหรือหลุดจากประวัติเก่าสุด' });
+      }
       const exportRequest = url.pathname.match(/^\/api\/requests\/([1-9]\d*)\/export$/);
       if (exportRequest && request.method === 'GET') {
         const id = Number(exportRequest[1]);

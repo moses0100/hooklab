@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-let info; let rows = []; let selected = null; let record = null; let tab = 'body'; let loading = false; let demoBusy = false; let lastSignature = ''; let messageTimer;
+let info; let rows = []; let selected = null; let record = null; let tab = 'body'; let loading = false; let demoBusy = false; let deleteBusy = false; let lastSignature = ''; let messageTimer;
 const time = value => new Date(value).toLocaleTimeString('th-TH', { hour12:false });
 function notify(text) { $('message').textContent=text; $('message').hidden=false; clearTimeout(messageTimer); messageTimer=setTimeout(()=>$('message').hidden=true,3500); }
 function fail(error) { $('error').textContent=error.message ?? 'เชื่อมต่อไม่ได้'; $('error').hidden=false; }
@@ -60,15 +60,30 @@ async function refresh() {
     const result=await json('/api/requests');rows=result.requests;
     const signature=rows.map(row=>row.id).join(',');
     if(signature!==lastSignature){lastSignature=signature;renderList();}
-    if(selected!==null&&!rows.some(row=>row.id===selected)){selected=null;record=null;$('detail').hidden=true;$('welcome').hidden=false;renderList();}
+    if(selected!==null&&!rows.some(row=>row.id===selected)){const missingId=selected;selected=null;record=null;$('detail').hidden=true;$('welcome').hidden=false;renderList();notify(`รายการ #${missingId} ถูกลบหรือหลุดจากประวัติแล้ว`);}
     $('connection').textContent='พร้อมรับข้อมูล';$('connection').classList.remove('offline');$('send-demo').disabled=demoBusy;
     if(!selected&&rows.length)await select(rows[0].id);
   }catch(error){$('connection').textContent='ออฟไลน์';$('connection').classList.add('offline');$('send-demo').disabled=true;fail(error);}
   finally{loading=false;}
 }
 async function copy(text,notice) {try{await navigator.clipboard.writeText(text);notify(notice);}catch{fail(new Error('คัดลอกอัตโนมัติไม่ได้ กรุณาเลือกข้อความแล้วคัดลอกเอง'));}}
+async function deleteSelected() {
+  if(!record||deleteBusy)return;
+  const targetId=record.id;
+  if(!window.confirm(`ลบ request #${targetId} ออกจากประวัติใช่ไหม?`))return;
+  deleteBusy=true;$('delete-request').disabled=true;$('error').hidden=true;
+  try {
+    const response=await fetch(`/api/requests/${targetId}`,{method:'DELETE',cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){selected=null;record=null;$('detail').hidden=true;$('welcome').hidden=false;await refresh();notify(`ลบ request #${targetId} แล้ว`);}
+    else if(response.status===404){selected=null;record=null;$('detail').hidden=true;$('welcome').hidden=false;await refresh();fail(new Error(data.error??`รายการ #${targetId} ถูกลบไปแล้วจากอีกแท็บ`));}
+    else{throw new Error(data.error??'ลบรายการไม่สำเร็จ');}
+  }catch(error){fail(error);}
+  finally{deleteBusy=false;$('delete-request').disabled=false;}
+}
 $('copy-url').addEventListener('click',()=>copy(info.captureUrl,'คัดลอก URL แล้ว'));
 $('copy-payload').addEventListener('click',()=>record&&copy(JSON.stringify(record[tab],null,2),'คัดลอกข้อมูลแล้ว'));
+$('delete-request').addEventListener('click',()=>void deleteSelected());
 $('search').addEventListener('input',renderList);$('refresh').addEventListener('click',()=>{ $('error').hidden=true;void refresh(); });
 for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>{tab=button.dataset.tab;renderPayload();});
 $('send-demo').addEventListener('click',async()=>{

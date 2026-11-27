@@ -130,3 +130,19 @@ test('overly nested JSON is rejected without retaining a partial request', async
   assert.deepEqual((await fetch(`${base}/api/requests`).then(r=>r.json())).requests,[]);
 });
 
+test('selected request can be deleted and repeat or cross-origin deletes are rejected', async t => {
+  const { base, captureUrl } = await app(t);
+  const first = await fetch(captureUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seq":1}' }).then(r => r.json());
+  const second = await fetch(captureUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seq":2}' }).then(r => r.json());
+  assert.equal((await fetch(`${base}/api/requests/${first.id}`, { method: 'DELETE', headers: { Origin: 'https://example.org' } })).status, 403);
+  const removed = await fetch(`${base}/api/requests/${first.id}`, { method: 'DELETE' });
+  assert.equal(removed.status, 200);
+  assert.deepEqual(await removed.json(), { deleted: true, id: first.id });
+  assert.equal((await fetch(`${base}/api/requests/${first.id}`)).status, 404);
+  const repeat = await fetch(`${base}/api/requests/${first.id}`, { method: 'DELETE' });
+  assert.equal(repeat.status, 404);
+  assert.equal((await fetch(`${base}/api/requests/99999999999999999999`, { method: 'DELETE' })).status, 404);
+  const { requests } = await fetch(`${base}/api/requests`).then(r => r.json());
+  assert.deepEqual(requests.map(r => r.id), [second.id]);
+});
+
