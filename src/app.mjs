@@ -10,6 +10,9 @@ const assets = new Map([
   ['/favicon.svg', ['favicon.svg', 'image/svg+xml']]
 ]);
 
+const ALLOWED_RESPONSE_STATUSES = [200, 201, 202, 204, 400, 401, 403, 404, 429, 500, 502, 503];
+const ALLOWED_RESPONSE_STATUS_SET = new Set(ALLOWED_RESPONSE_STATUSES);
+
 export function createApp({ database = ':memory:', retention = 200 } = {}) {
   const store = openStore(database, retention);
   const server = createServer(async (request, response) => {
@@ -30,7 +33,22 @@ export function createApp({ database = ':memory:', retention = 200 } = {}) {
       }
       const url = new URL(request.url, `http://${request.headers.host}`);
       if (url.pathname === '/api/info' && request.method === 'GET') {
-        return json(200, { captureUrl: `http://${request.headers.host}/hooks/${store.inbox}`, retention, maxBodyBytes: 262144 });
+        return json(200, {
+          captureUrl: `http://${request.headers.host}/hooks/${store.inbox}`,
+          retention,
+          maxBodyBytes: 262144,
+          responseStatus: store.getResponseStatus(),
+          allowedResponseStatuses: ALLOWED_RESPONSE_STATUSES
+        });
+      }
+      if (url.pathname === '/api/settings/response-status' && request.method === 'PUT') {
+        const buffer = await readBody(request);
+        const parsed = parseBody(buffer, request.headers['content-type']);
+        const status = parsed.kind === 'json' && parsed.value && typeof parsed.value === 'object' ? parsed.value.status : null;
+        if (!Number.isInteger(status) || !ALLOWED_RESPONSE_STATUS_SET.has(status)) {
+          return json(400, { error: 'สถานะตอบกลับไม่อยู่ในรายการที่รองรับ' });
+        }
+        return json(200, { responseStatus: store.setResponseStatus(status) });
       }
       if (url.pathname === '/api/requests' && request.method === 'GET') return json(200, { requests: store.list() });
       const detail = url.pathname.match(/^\/api\/requests\/([1-9]\d*)$/);
@@ -62,7 +80,9 @@ export function createApp({ database = ':memory:', retention = 200 } = {}) {
         const parsed = parseBody(buffer, request.headers['content-type']);
         const id = store.save({ method: request.method, receivedAt: new Date().toISOString(), bytes: buffer.length,
           kind: parsed.kind, headers: redact(request.headers), query: redact(paramsObject(url.searchParams)), body: parsed.value });
-        return json(200, { received: true, id });
+        const status = store.getResponseStatus();
+        if (status === 204) { response.writeHead(204); response.end(); return; }
+        return json(status, { received: true, id, simulatedStatus: status });
       }
       if (request.method === 'GET' && assets.has(url.pathname)) {
         const [filename, type] = assets.get(url.pathname);

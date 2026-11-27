@@ -146,3 +146,42 @@ test('selected request can be deleted and repeat or cross-origin deletes are rej
   assert.deepEqual(requests.map(r => r.id), [second.id]);
 });
 
+test('configurable response status simulates webhook failures and persists across restart', async t => {
+  const folder = await mkdtemp(join(tmpdir(), 'hooklab-status-'));
+  t.after(() => rm(folder, { recursive: true, force: true }));
+  const database = join(folder, 'inbox.sqlite');
+  const first = await app(t, { database });
+  assert.equal(first.responseStatus, 200);
+  assert.equal((await fetch(`${first.base}/api/settings/response-status`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', Origin: 'https://example.org' }, body: JSON.stringify({ status: 500 })
+  })).status, 403);
+  assert.equal((await fetch(`${first.base}/api/settings/response-status`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 999 })
+  })).status, 400);
+  const updated = await fetch(`${first.base}/api/settings/response-status`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 503 })
+  });
+  assert.equal(updated.status, 200);
+  assert.deepEqual(await updated.json(), { responseStatus: 503 });
+  const failedHook = await fetch(first.captureUrl, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'retry.test' })
+  });
+  assert.equal(failedHook.status, 503);
+  const payload = await failedHook.json();
+  assert.equal(payload.received, true);
+  assert.equal(payload.simulatedStatus, 503);
+  await first.close();
+
+  const second = await app(t, { database });
+  assert.equal(second.responseStatus, 503);
+  await fetch(`${second.base}/api/settings/response-status`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 204 })
+  });
+  const noContent = await fetch(second.captureUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"ok":true}' });
+  assert.equal(noContent.status, 204);
+  assert.equal(await noContent.text(), '');
+  const { requests } = await fetch(`${second.base}/api/requests`).then(r => r.json());
+  assert.equal(requests.length, 2);
+  await second.close();
+});
+

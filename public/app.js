@@ -55,6 +55,7 @@ async function refresh() {
   if(loading)return;loading=true;
   try {
     if(!info){info=await json('/api/info');$('capture-url').value=info.captureUrl;$('copy-url').disabled=false;
+      $('response-status').value=String(info.responseStatus??200);$('response-status').disabled=false;
       $('curl-example').textContent=`curl -X POST '${info.captureUrl}' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"event":"hello","source":"n8n"}'`;
     }
     const result=await json('/api/requests');rows=result.requests;
@@ -82,13 +83,21 @@ async function deleteSelected() {
   finally{deleteBusy=false;$('delete-request').disabled=false;}
 }
 $('copy-url').addEventListener('click',()=>copy(info.captureUrl,'คัดลอก URL แล้ว'));
+$('response-status').addEventListener('change',async()=>{
+  if(!info)return;
+  const nextStatus=Number($('response-status').value);
+  $('response-status').disabled=true;$('error').hidden=true;
+  try{const result=await json('/api/settings/response-status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:nextStatus})});info.responseStatus=result.responseStatus;notify(`ตั้งค่าสถานะตอบกลับเป็น ${result.responseStatus} แล้ว`);}
+  catch(error){$('response-status').value=String(info.responseStatus??200);fail(error);}
+  finally{$('response-status').disabled=false;}
+});
 $('copy-payload').addEventListener('click',()=>record&&copy(JSON.stringify(record[tab],null,2),'คัดลอกข้อมูลแล้ว'));
 $('delete-request').addEventListener('click',()=>void deleteSelected());
 $('search').addEventListener('input',renderList);$('refresh').addEventListener('click',()=>{ $('error').hidden=true;void refresh(); });
 for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>{tab=button.dataset.tab;renderPayload();});
 $('send-demo').addEventListener('click',async()=>{
   if(!info||demoBusy)return;demoBusy=true;$('send-demo').disabled=true;$('send-demo').textContent='กำลังส่ง…';$('error').hidden=true;
-  try{const result=await json(info.captureUrl,{method:'POST',headers:{'Content-Type':'application/json','X-Api-Key':'demo-key-not-a-real-secret'},body:JSON.stringify({event:'order.created',source:'hooklab-demo',order:{id:'DEMO-001',total:399,currency:'THB'},customer:{name:'Demo User',access_token:'example-token'}})});await refresh();await select(result.id);notify(`รับตัวอย่างแล้ว · request #${result.id}`);}
+  try{const response=await fetch(info.captureUrl,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-Api-Key':'demo-key-not-a-real-secret'},body:JSON.stringify({event:'order.created',source:'hooklab-demo',order:{id:'DEMO-001',total:399,currency:'THB'},customer:{name:'Demo User',access_token:'example-token'}})});const result=response.status===204?null:await response.json().catch(()=>null);await refresh();if(result?.id)await select(result.id);notify(`รับตัวอย่างแล้ว · HTTP ${response.status}${result?.id?` · request #${result.id}`:''}`);}
   catch(error){fail(error);}finally{demoBusy=false;$('send-demo').disabled=false;$('send-demo').textContent='↗ ส่งตัวอย่าง';}
 });
 void refresh();setInterval(()=>{if(!document.hidden)void refresh();},2000);

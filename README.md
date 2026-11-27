@@ -57,7 +57,8 @@ npm start
 | `GET /api/requests/:id` | รายละเอียดที่ปิดบังข้อมูลแล้ว |
 | `GET /api/requests/:id/export` | ดาวน์โหลดรายละเอียดที่ปิดบังแล้วเป็น JSON |
 | `DELETE /api/requests/:id` | ลบรายการที่เลือกออกจากประวัติ |
-| `/hooks/:inbox-id` | รับ request แล้วตอบ `{"received":true,"id":1}` |
+| `PUT /api/settings/response-status` | ตั้งค่า HTTP status ตอบกลับของ inbox เพื่อจำลอง webhook failure |
+| `/hooks/:inbox-id` | รับ request แล้วตอบตาม status ที่ตั้งไว้ (ค่าเริ่มต้น 200) |
 
 รองรับ body แบบ JSON รวม `+json`, form-urlencoded และ request ที่ไม่มี body จำกัด 256 KiB รับไม่ผ่านจะไม่เพิ่มรายการ: JSON เสียหรือซ้อนลึกเกิน 40 ชั้นตอบ 400, body เกินขนาดตอบ 413 และชนิด body ที่ยังไม่รองรับตอบ 415 ไม่เก็บไฟล์แนบหรือ raw body ในรุ่นแรก
 

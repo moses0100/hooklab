@@ -16,12 +16,17 @@ export function openStore(filename, retention = 200) {
     );
   `);
   db.prepare('INSERT OR IGNORE INTO settings(key,value) VALUES (?,?)').run('inbox', randomUUID());
+  db.prepare('INSERT OR IGNORE INTO settings(key,value) VALUES (?,?)').run('response_status', '200');
   const inbox = db.prepare('SELECT value FROM settings WHERE key=?').get('inbox').value;
+  const getSetting = db.prepare('SELECT value FROM settings WHERE key=?');
+  const setSetting = db.prepare('INSERT OR REPLACE INTO settings(key,value) VALUES (?,?)');
   const insert = db.prepare('INSERT INTO requests(method,received_at,bytes,kind,headers,query,body) VALUES (?,?,?,?,?,?,?)');
   const prune = db.prepare('DELETE FROM requests WHERE id NOT IN (SELECT id FROM requests ORDER BY id DESC LIMIT ?)');
   const removeRow = db.prepare('DELETE FROM requests WHERE id=?');
   return {
     inbox,
+    getResponseStatus() { return Number(getSetting.get('response_status')?.value ?? 200); },
+    setResponseStatus(status) { setSetting.run('response_status', String(status)); return status; },
     save(record) {
       db.exec('BEGIN');
       try {
